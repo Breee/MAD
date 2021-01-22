@@ -1,0 +1,40 @@
+version: 2
+jobs:
+ build:
+   machine: true
+   steps:
+     - checkout
+     - run:
+         name: Store Version and Image name
+         command: |
+           echo 'export TAG=0.1.${CIRCLE_BUILD_NUM}' >> $BASH_ENV
+           echo 'export IMAGE_NAME=mad' >> $BASH_ENV
+     # with credentials stored in the UI
+     - run:
+         command: |
+           docker build --no-cache --file=./docker/Dockerfile -t breedocker/$IMAGE_NAME:$TAG --build-arg tag=${TAG} .
+           docker build --no-cache --file=./docker/Dockerfile -t breedocker/$IMAGE_NAME:latest --build-arg tag=${TAG} .
+           docker login -u="$DOCKER_USER" -p="$DOCKER_PASSWORD"
+           docker push breedocker/$IMAGE_NAME:$TAG
+           docker push breedocker/$IMAGE_NAME:latest
+ build-pr:
+  machine: true
+  steps:
+    - checkout
+    - run:
+        command: |
+          docker build --no-cache --file=./docker/Dockerfile .
+   
+         
+workflows:
+  version: 2
+  main:
+    jobs:
+    - build:
+        filters:
+          branches:
+            only: master
+    - build-pr:
+        filters:
+          branches:
+            ignore: master
